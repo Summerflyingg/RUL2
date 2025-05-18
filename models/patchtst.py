@@ -12,16 +12,21 @@ class PatchEmbedding1D(nn.Module):
         return self.proj(x).permute(0,2,1)  # B, Patches, D
 
 class PatchEmbedding3D(nn.Module):
-    """For STFT freq×time patches."""
-    def __init__(self, patch_size=(4,4), in_ch=1, d_model=128):
+    """Patch embedding for STFT feature maps."""
+    def __init__(self, patch_size=(4, 4), in_ch=14, d_model=128):
         super().__init__()
-        self.proj = nn.Conv3d(in_ch, d_model, kernel_size=patch_size+(patch_size[1],),
-                              stride=patch_size+(patch_size[1],))
+        self.proj = nn.Conv3d(
+            in_ch,
+            d_model,
+            kernel_size=(1, patch_size[0], patch_size[1]),
+            stride=(1, patch_size[0], patch_size[1]),
+        )
+
     def forward(self, x):
-        # x: (B,C,F,T)
-        out = self.proj(x.unsqueeze(1))  # B,d_model,f',t'
-        B,D,Fp,Tp = out.shape
-        out = out.reshape(B, D, Fp*Tp).permute(0,2,1)  # B,patches,D
+        # x: (B, 14, F, T)
+        x = x.unsqueeze(2)  # B,14,1,F,T
+        out = self.proj(x)  # B,d_model,1,F',T'
+        out = out.squeeze(2).flatten(2).permute(0, 2, 1)  # B,patches,D
         return out
 
 class TransformerEncoder(nn.Module):

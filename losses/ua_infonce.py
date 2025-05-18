@@ -9,18 +9,15 @@ def ua_infonce(z1, z2, dropout_p=0.2, repeats=5, temperature=0.1):
     Returns:
         scalar loss
     """
-    B, D = z1.shape
-    zs = []
-    for _ in range(repeats):
-        zs.append(F.dropout(z1, dropout_p, training=True))
-    z1s = torch.stack(zs)  # K,B,D
-    sigma2 = torch.var(z1s, dim=0).mean(-1, keepdim=True)  # B,1
-    w = torch.exp(-sigma2.detach())
+    B, _ = z1.shape
+    # variance-based weight
+    z1_drop = torch.stack([F.dropout(z1, dropout_p, training=True) for _ in range(repeats)], 0)
+    var = z1_drop.var(dim=0).mean(-1)
+    weight = torch.exp(-var.detach())  # (B,)
 
-    z = torch.cat([z1, z2], 0)
-    sim = torch.mm(z, z.t()) / temperature
+    z1 = F.normalize(z1, dim=-1)
+    z2 = F.normalize(z2, dim=-1)
+    logits = torch.mm(z1, z2.t()) / temperature  # (B,B)
     labels = torch.arange(B, device=z1.device)
-    logits = sim[:B, B:]  # positive
-    logit_all = torch.cat([sim[:B, :B], sim[:B, B:]], 1)
-    ce = F.cross_entropy(logit_all, labels.repeat(1), reduction='none')
-    return (w.squeeze()*ce).mean()
+    ce = F.cross_entropy(logits, labels, reduction='none')
+    return (weight * ce).mean()

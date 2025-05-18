@@ -20,7 +20,7 @@ class SSLLit(pl.LightningModule):
         x_time, x_spec = batch
         h_t, h_f = self(x_time, x_spec)
         loss_c = ua_infonce(h_t, h_f)
-        seq_mean = x_time.mean(-1)  # (B,14)
+        seq_mean = x_time.mean(1)  # (B,L)
         loss_mono = mono_loss(seq_mean, warmup_steps=50, global_step=self.global_step)
         loss = loss_c + 0.05*loss_mono
         self.log_dict({'ssl_loss':loss, 'contrast':loss_c, 'mono':loss_mono})

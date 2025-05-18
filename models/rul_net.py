@@ -12,7 +12,7 @@ class RULNet(nn.Module):
         self.time_branch = PatchTSTBranch(
             PatchEmbedding1D(patch_len=4, in_ch=14, d_model=d_model), d_model=d_model)
         self.freq_branch = PatchTSTBranch(
-            PatchEmbedding3D(patch_size=(4,4), in_ch=1, d_model=d_model), d_model=d_model)
+            PatchEmbedding3D(patch_size=(4,4), in_ch=14, d_model=d_model), d_model=d_model)
         self.head = nn.Sequential(
             nn.LayerNorm(d_model*2),
             nn.Linear(d_model*2, 128),
